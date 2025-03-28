@@ -1,0 +1,45 @@
+global:
+  resolve_timeout: 30s
+
+route:
+  receiver: 'tg-bot'
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 30s
+  routes:
+    - match:
+        severity: critical
+      receiver: 'tg-bot'
+      repeat_interval: 30s
+
+receivers:
+- name: 'tg-bot'
+  telegram_configs:
+  - bot_token: 'token'
+    chat_id: id
+    parse_mode: 'HTML'
+    message: |
+      {{ $alert := index .Alerts 0 }}
+      🚨 <b>{{ .Status | toUpper }}</b>
+
+      <b>Информация о тревоге:</b>
+      📢 Type: {{ $alert.Labels.alertname }}
+      ⚠️  Severity: {{ $alert.Labels.severity }}
+      🖥️  Host: {{ $alert.Labels.instance }}
+
+      <b>Description:</b>
+      {{ $alert.Annotations.summary }}
+      📝 {{ $alert.Annotations.description }}
+
+      🕐 Beginning: {{ $alert.StartsAt }}
+      {{ if eq .Status "resolved" }}
+      ✅ Solved: {{ $alert.EndsAt }}
+      {{ end }}
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

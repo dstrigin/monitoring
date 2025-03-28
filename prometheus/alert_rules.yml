@@ -1,0 +1,29 @@
+groups:
+- name: alerts
+  rules:
+  - alert: HostHighCpuLoad
+    expr: (avg by (instance) (rate(node_cpu_seconds_total{mode!="idle"}[1m]))) > .80
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Host high CPU load (instance {{ $labels.instance }})"
+      description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: HostOutOfDiskSpace
+    expr: (node_filesystem_avail_bytes{fstype!~"^(fuse.*|tmpfs|cifs|nfs)"} / node_filesystem_size_bytes < .10 and on (instance, device, mountpoint) node_filesystem_readonly == 0)
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Host out of disk space (instance {{ $labels.instance }})"
+      description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: HostTooManyRAM
+    expr: ((node_memory_MemTotal_bytes - node_memory_MemFree_bytes) / node_memory_MemTotal_bytes) * 100 > 20
+    for: 30s
+    labels:
+      severity: critical
+    annotations:
+      summary: "Host system uses too much RAM"
+      description: "System uses {{ $value  }}% of RAM"
